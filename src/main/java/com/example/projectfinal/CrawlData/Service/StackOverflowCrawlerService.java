@@ -145,7 +145,8 @@ public class StackOverflowCrawlerService {
                 }
 
                 // 清理剩余的问题 ID，以获取对应问题的答案数据，避免遗漏，最后一页的问题数量可能不足 50 个
-                fetchAndSaveAnswers(questionIds);
+                if (!questionIds.isEmpty())
+                    fetchAndSaveAnswers(questionIds);
                 questionIds.clear();
 
                 // 检查是否需要退避
