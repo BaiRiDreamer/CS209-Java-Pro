@@ -1,15 +1,16 @@
 package com.example.projectfinal.CrawlData;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SpringBootApplication
-@Slf4j
 public class StackOverflowCrawlerApplication {
 
+    private static final Logger log = LoggerFactory.getLogger(StackOverflowCrawlerApplication.class);
+
     public static void main(String[] args) {
-        log.info("Start application");
         SpringApplication.run(StackOverflowCrawlerApplication.class, args);
     }
 

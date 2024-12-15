@@ -45,13 +45,14 @@ public class StackOverflowCrawlerService {
         /**
          *  Example of a request URL:
          *  https://api.stackexchange.com/2.3/questions?page=1&pagesize=20&order=desc&sort=hot&tagged=java&site=stackoverflow
+         *  https://api.stackexchange.com/2.3/questions?page=1&pagesize=20&order=desc&sort=hot&tagged=java&site=stackoverflow
          **/
 
         logger.info("Crawling question data from Stack Overflow...");
 
         int page = 1;
         int pageSize = 100; // 每页获取的问题数量
-        String keyword = "question";
+        String keyword = "questions";
         String order = "desc";
         String sort = "hot";
         String tags = "java";
