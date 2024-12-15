@@ -11,7 +11,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +39,7 @@ public class StackOverflowCrawlerService {
 
     private static final String API_URL = "https://api.stackexchange.com/2.3/";
     private static final String API_KEY = "rl_bNHWAfLVJh12Uyv9GV4JYxS5i"; // 请在此替换为您的实际 API Key
+    private static ArrayList<Integer> questionIds;
 
     public void crawlQuestionData() {
         RestTemplate restTemplate = new RestTemplate();
@@ -54,7 +57,7 @@ public class StackOverflowCrawlerService {
         int pageSize = 100; // 每页获取的问题数量
         String keyword = "questions";
         String order = "desc";
-        String sort = "hot";
+        String sort = "votes";
         String tags = "java";
         String site = "stackoverflow";
 
@@ -120,16 +123,24 @@ public class StackOverflowCrawlerService {
                         }
                     }
 
+                    questionIds.add(question.getQuestionId());
                     // 获取对应问题的答案数据
-                    if (question.getAnswerCount() > 0) {
-                        fetchAndSaveAnswers(question.getQuestionId());
+                    // 注意这里不是直接调用，而是判断是否积累了足够多的问题后再调用
+                    if (questionIds.size() >= 50) {
+                        fetchAndSaveAnswers(questionIds);
                     }
+                    questionIds.clear();
 
                     totalQuestions++;
                     if (totalQuestions >= maxQuestions) {
                         break;
                     }
                 }
+
+
+                // 清理剩余的问题 ID，以获取对应问题的答案数据，避免遗漏，最后一页的问题数量可能不足 50 个
+                fetchAndSaveAnswers(questionIds);
+                questionIds.clear();
 
                 // 检查是否需要退避
                 if (rootNode.has("backoff")) {
@@ -165,9 +176,9 @@ public class StackOverflowCrawlerService {
     private Question parseQuestion(JsonNode item, User owner) {
         Question question = new Question();
         question.setQuestionId(item.get("question_id").asInt());
-        question.setTitle(item.get("title").asText());
-        question.setContentLicense(item.get("content_license").asText());
-        question.setLink(item.get("link").asText());
+        question.setTitle(item.get("title") != null ? item.get("title").asText() : null);
+        question.setContentLicense(item.get("content_license") != null ? item.get("content_license").asText() : null);
+        question.setLink(item.get("link") != null ? item.get("link").asText() : null);
         question.setViewCount(item.get("view_count").asInt());
         question.setAnswerCount(item.get("answer_count").asInt());
         question.setScore(item.get("score").asInt());
@@ -181,7 +192,7 @@ public class StackOverflowCrawlerService {
         return question;
     }
 
-    private void fetchAndSaveAnswers(Integer questionId) {
+    private void fetchAndSaveAnswers(List<Integer> questionIds) {
         /**
          *  Example of a request URL:
          *  https://api.stackexchange.com/2.3/answers/11227902?page=1&pagesize=100&order=desc&sort=activity&site=stackoverflow&filter=!6WPIomorr1gmu
@@ -189,13 +200,15 @@ public class StackOverflowCrawlerService {
 
         int page = 1;
         int pageSize = 100; // 每页获取的问题数量
-        String keyword = "answers";
+        String keyword = "questions";
         String order = "desc";
         String sort = "votes";
         String site = "stackoverflow";
         String filter = "!nNPvSNdWme"; // 过滤器，用于指定返回的字段
 
-        String url = API_URL + keyword + "/" + questionId + "?page=" + page + "&pagesize=" + pageSize + "&order=" + order + "&sort=" + sort + "&site=" + site + "&filter=" + filter + "&key=" + API_KEY;
+        String questionId = String.join(";", questionIds.stream().map(String::valueOf).toArray(String[]::new)); // 将问题 ID 列表转换为字符串, 例如 "11227902;11227903;11227904"
+
+        String url = API_URL + keyword + "/" + questionId + "/answers?" + "page=" + page + "&pagesize=" + pageSize + "&order=" + order + "&sort=" + sort + "&site=" + site + "&filter=" + filter + "&key=" + API_KEY;
 
         logger.info("Requesting data from: " + url);
 
@@ -205,7 +218,7 @@ public class StackOverflowCrawlerService {
         try {
             String response = restTemplate.getForObject(url, String.class);
             JsonNode rootNode = objectMapper.readTree(response);
-            JsonNode itemsNode = rootNode.get("items").get("comments");
+            JsonNode itemsNode = rootNode.get("items");
 
             if (itemsNode != null && itemsNode.isArray()) {
                 // 将itemsNode转换为迭代器，以便遍历其中的元素
