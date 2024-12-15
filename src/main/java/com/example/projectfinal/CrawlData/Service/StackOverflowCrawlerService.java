@@ -39,7 +39,7 @@ public class StackOverflowCrawlerService {
 
     private static final String API_URL = "https://api.stackexchange.com/2.3/";
     private static final String API_KEY = "rl_bNHWAfLVJh12Uyv9GV4JYxS5i"; // 请在此替换为您的实际 API Key
-    private static ArrayList<Integer> questionIds;
+    private static ArrayList<Integer> questionIds = new ArrayList<>();
 
     public void crawlQuestionData() {
         RestTemplate restTemplate = new RestTemplate();
@@ -62,7 +62,8 @@ public class StackOverflowCrawlerService {
         String site = "stackoverflow";
 
         int totalQuestions = 0;
-        int maxQuestions = 1000; // 需要获取的问题总数'
+        int maxQuestions = 1000; // 需要获取的问题总数
+        int answerGetSpeed = 99; // 每次获取答案的问题数量
 
         while (totalQuestions < maxQuestions) {
             String url = API_URL + keyword + "?page=" + page + "&pagesize=" + pageSize + "&order=" + order + "&sort=" + sort + "&tagged=" + tags + "&site=" + site + "&key=" + API_KEY;
@@ -88,6 +89,12 @@ public class StackOverflowCrawlerService {
                     // 解析并保存用户数据
                     JsonNode ownerNode = item.get("owner");
                     User owner = parseUser(ownerNode);
+
+                    // 如果用户不存在，则跳过
+                    if (owner == null) {
+                        continue;
+                    }
+
                     // 如果用户不存在，则保存用户数据
                     if (!userRepository.existsById(owner.getUserId())) {
                         // 保存用户数据
@@ -126,17 +133,16 @@ public class StackOverflowCrawlerService {
                     questionIds.add(question.getQuestionId());
                     // 获取对应问题的答案数据
                     // 注意这里不是直接调用，而是判断是否积累了足够多的问题后再调用
-                    if (questionIds.size() >= 50) {
+                    if (questionIds.size() >= answerGetSpeed) {
                         fetchAndSaveAnswers(questionIds);
+                        questionIds.clear();
                     }
-                    questionIds.clear();
 
                     totalQuestions++;
                     if (totalQuestions >= maxQuestions) {
                         break;
                     }
                 }
-
 
                 // 清理剩余的问题 ID，以获取对应问题的答案数据，避免遗漏，最后一页的问题数量可能不足 50 个
                 fetchAndSaveAnswers(questionIds);
@@ -152,8 +158,7 @@ public class StackOverflowCrawlerService {
                 page++; // 翻页
 
                 // 控制请求频率，避免触发限速
-                Thread.sleep(1000L);
-
+                Thread.sleep(3000L);
             } catch (Exception e) {
                 e.printStackTrace();
                 break;
@@ -163,6 +168,11 @@ public class StackOverflowCrawlerService {
 
     private User parseUser(JsonNode ownerNode) {
         User user = new User();
+
+        // 首先判断是否存在用户 ID，如果不存在则返回空
+        if (ownerNode == null || ownerNode.get("user_id") == null) {
+            return null;
+        }
         user.setUserId(ownerNode.get("user_id").asInt());
         user.setAccountId(ownerNode.get("account_id").asInt());
         user.setReputation(ownerNode.get("reputation").asInt());
@@ -197,7 +207,6 @@ public class StackOverflowCrawlerService {
          *  Example of a request URL:
          *  https://api.stackexchange.com/2.3/answers/11227902?page=1&pagesize=100&order=desc&sort=activity&site=stackoverflow&filter=!6WPIomorr1gmu
          **/
-
         int page = 1;
         int pageSize = 100; // 每页获取的问题数量
         String keyword = "questions";
@@ -205,6 +214,7 @@ public class StackOverflowCrawlerService {
         String sort = "votes";
         String site = "stackoverflow";
         String filter = "!nNPvSNdWme"; // 过滤器，用于指定返回的字段
+        boolean hasMore = true;
 
         String questionId = String.join(";", questionIds.stream().map(String::valueOf).toArray(String[]::new)); // 将问题 ID 列表转换为字符串, 例如 "11227902;11227903;11227904"
 
@@ -215,49 +225,65 @@ public class StackOverflowCrawlerService {
         RestTemplate restTemplate = new RestTemplate();
         ObjectMapper objectMapper = new ObjectMapper();
 
-        try {
-            String response = restTemplate.getForObject(url, String.class);
-            JsonNode rootNode = objectMapper.readTree(response);
-            JsonNode itemsNode = rootNode.get("items");
+        while (hasMore) {
+            JsonNode ownerNode = null;
+            try {
+                url = API_URL + keyword + "/" + questionId + "/answers?" + "page=" + page + "&pagesize=" + pageSize + "&order=" + order + "&sort=" + sort + "&site=" + site + "&filter=" + filter + "&key=" + API_KEY;
+                String response = restTemplate.getForObject(url, String.class);
+                JsonNode rootNode = objectMapper.readTree(response);
+                JsonNode itemsNode = rootNode.get("items");
 
-            if (itemsNode != null && itemsNode.isArray()) {
-                // 将itemsNode转换为迭代器，以便遍历其中的元素
-                Iterator<JsonNode> items = itemsNode.elements();
+                // 更新HasMore
+                hasMore = rootNode.get("has_more").asBoolean();
 
-                while (items.hasNext()) {
-                    JsonNode item = items.next();
+                if (itemsNode != null && itemsNode.isArray()) {
+                    // 将itemsNode转换为迭代器，以便遍历其中的元素
+                    Iterator<JsonNode> items = itemsNode.elements();
 
-                    // 解析并保存回答者的用户数据
-                    JsonNode ownerNode = item.get("owner");
-                    User answerUser = parseUser(ownerNode);
+                    while (items.hasNext()) {
+                        JsonNode item = items.next();
 
-                    // 如果用户不存在，则保存用户数据
-                    if (!userRepository.existsById(answerUser.getUserId())) {
-                        userRepository.save(answerUser);
-                    }
+                        // 解析并保存回答者的用户数据
+                        ownerNode = item.get("owner");
+                        User answerUser = parseUser(ownerNode);
 
-                    // 解析并保存答案数据
-                    Answer answer = parseAnswer(item, answerUser);
-                    // 判断答案是否已存在
-                    if (!answerRepository.existsById(answer.getAnswerId())) {
-                        // 保存答案数据
-                        answerRepository.save(answer);
+                        // 如果用户不存在，则跳过
+                        if (answerUser == null) {
+                            continue;
+                        }
+
+                        // 如果用户不存在，则保存用户数据
+                        if (!userRepository.existsById(answerUser.getUserId())) {
+                            userRepository.save(answerUser);
+                        }
+
+                        // 解析并保存答案数据
+                        Answer answer = parseAnswer(item, answerUser);
+                        // 判断答案是否已存在
+                        if (!answerRepository.existsById(answer.getAnswerId())) {
+                            // 保存答案数据
+                            answerRepository.save(answer);
+                        }
                     }
                 }
+
+                // 检查是否需要退避
+                if (rootNode.has("backoff")) {
+                    int backoff = rootNode.get("backoff").asInt();
+                    System.out.println("Backing off for " + backoff + " seconds...");
+                    Thread.sleep(backoff * 1000L);
+                }
+
+                // 控制请求频率
+                Thread.sleep(5000L);
+
+            } catch (Exception e) {
+                // 输出节点信息
+                logger.error("Failed to fetch answers from: " + url);
+                logger.error(ownerNode.toString());
+                e.printStackTrace();
             }
-
-            // 检查是否需要退避
-            if (rootNode.has("backoff")) {
-                int backoff = rootNode.get("backoff").asInt();
-                System.out.println("Backing off for " + backoff + " seconds...");
-                Thread.sleep(backoff * 1000L);
-            }
-
-            // 控制请求频率
-            Thread.sleep(5000L);
-
-        } catch (Exception e) {
-            e.printStackTrace();
+            page++; // 翻页
         }
     }
 
