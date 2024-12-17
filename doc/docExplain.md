@@ -15,43 +15,49 @@
 将收集的数据离线存储在数据库（如PostgreSQL、MySQL）或本地文件中。
 
 ## 数据分析 (70分)
+- 需要定义const API_BASE_URL = 'http://localhost:8080/api'  修改为后端url
+- 其次下方的四个请求都会传入一个参数n，表示要展示的数据数量
 ### Java Topics (10分)
 - 分析并展示在Stack Overflow上最常被问及的N个Java相关主题。
 - 需要后端数据格式为
-  [
+- [
   { "topic": "NullPointerException", "count": 125 },
   { "topic": "ClassCastException", "count": 97 },
   { "topic": "Stream API", "count": 85 }
   ]
+- 用到的路径为axios.get(`${API_BASE_URL}/topics`
 
 ### User Engagement (15分)
 - 分析并展示用户参与度最高的N个Java相关主题。
 - 需要后端数据格式为
-  [
+- [
   { "topic": "Multithreading", "engagement": 300 },
   { "topic": "Lambda Expressions", "engagement": 270 },
   { "topic": "Java Collections", "engagement": 245 }
   ]
+- 用到的路径为axios.get(`${API_BASE_URL}/user-engagement`
 
 
 ### Common Mistakes (15分)
 - 分析并展示Java开发者最常讨论的N个错误和异常。
 - 需要后端数据格式为
-  [
+- [
   { "error": "NullPointerException", "count": 150 },
   { "error": "OutOfMemoryError", "count": 120 },
   { "error": "ArrayIndexOutOfBoundsException", "count": 100 }
   ]
+- 用到的路径为axios.get(`${API_BASE_URL}/common-mistakes`
 
 
 ### Answer Quality (30分)
 - 分析影响高质量答案的因素，包括回答创建时间、回答者的声誉等。
 - 需要后端数据格式为
-  [
+- [
   { "reputation": 1200, "votes": 50, "creation_time": "2023-01-01" },
   { "reputation": 800, "votes": 40, "creation_time": "2023-02-15" },
   { "reputation": 300, "votes": 20, "creation_time": "2023-03-10" }
   ]
+- 用到的路径为axios.get(`${API_BASE_URL}/answer-quality`
 
 
 
