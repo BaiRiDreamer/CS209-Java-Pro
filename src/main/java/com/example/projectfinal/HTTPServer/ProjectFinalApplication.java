@@ -1,4 +1,4 @@
-package com.example.projectfinal;
+package com.example.projectfinal.HTTPServer;
 
 import org.slf4j.Logger;
 import org.springframework.boot.SpringApplication;

@@ -53,7 +53,7 @@ public class StackOverflowCrawlerService {
 
         logger.info("Crawling question data from Stack Overflow...");
 
-        int page = 1;
+        int page = 8;
         int pageSize = 100; // 每页获取的问题数量
         String keyword = "questions";
         String order = "desc";
@@ -62,7 +62,7 @@ public class StackOverflowCrawlerService {
         String site = "stackoverflow";
 
         int totalQuestions = 0;
-        int maxQuestions = 1000; // 需要获取的问题总数
+        int maxQuestions = 500; // 需要获取的问题总数
         int answerGetSpeed = 99; // 每次获取答案的问题数量
 
         while (totalQuestions < maxQuestions) {
@@ -281,7 +281,8 @@ public class StackOverflowCrawlerService {
             } catch (Exception e) {
                 // 输出节点信息
                 logger.error("Failed to fetch answers from: " + url);
-                logger.error(ownerNode.toString());
+                if (ownerNode != null)
+                    logger.error(ownerNode.toString());
                 e.printStackTrace();
             }
             page++; // 翻页
