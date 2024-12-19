@@ -32,4 +32,17 @@ public class JavaTopicAnalysisController {
 
         return javaTopicAnalysisService.getTopJavaTopics(num);
     }
+
+    // URL example: http://localhost:8080/javaTopicAnalysis/SpecificTopics/java,spring
+    @GetMapping("/SpecificTopics/{topics}")
+    public List<Map<String, Object>> getSpecificTopics(@PathVariable List<String> topics) {
+        List<Map<String, Object>> result = null;
+        try {
+            result = javaTopicAnalysisService.getSpecificJavaTopics(topics);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return result;
+    }
 }

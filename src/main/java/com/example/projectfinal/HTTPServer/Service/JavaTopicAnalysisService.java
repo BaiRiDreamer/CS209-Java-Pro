@@ -36,4 +36,18 @@ public class JavaTopicAnalysisService {
         // 取前 n 个
         return results.subList(0, Math.min(n, results.size()));
     }
+
+    public List<Map<String, Object>> getSpecificJavaTopics(List<String> topics) {
+        String sql = "SELECT t.name AS topic, COUNT(*) AS count " +
+                "FROM question_tags qt " +
+                "JOIN tags t ON qt.tag_id = t.tag_id " +
+                "WHERE t.name IN (" + topics.stream().map(s -> "'" + s + "'").collect(Collectors.joining(", ")) + ") " +
+                "GROUP BY t.name";
+        List<Map<String, Object>> results = jdbcTemplate.queryForList(sql);
+
+        // 按 count 降序排序
+        results.sort((m1, m2) -> ((Long) m2.get("count")).compareTo((Long) m1.get("count")));
+
+        return results.subList(0, results.size());
+    }
 }
