@@ -4,7 +4,7 @@ import { fetchTopJavaTopics, fetchSpecificJavaTopics } from '../api'; // 引入�
 
 const JavaTopics = () => {
   const [data, setData] = useState([]); // 存储话题数据
-  const [num, setNum] = useState(5); // 默认展示前5个热门话题
+  const [num, setNum] = useState(6); // 默认展示前5个热门话题
   const [specificTopics, setSpecificTopics] = useState(''); // 用户输入的特定话题
   const [mode, setMode] = useState('top'); // 模式切换（top 或 specific）
   const [loading, setLoading] = useState(false); // 数据加载状态
@@ -17,11 +17,13 @@ const JavaTopics = () => {
         if (mode === 'top') {
           // 加载最热门的 Java 话题
           const response = await fetchTopJavaTopics(num);
-          setData(Array.isArray(response.data) ? response.data : []); // 确保 data 是数组
+          const filteredData = Array.isArray(response.data) ? response.data.slice(1) : []; // 过滤掉第一条数据
+          setData(filteredData);
         } else if (mode === 'specific' && specificTopics) {
           // 加载特定 Java 话题
           const response = await fetchSpecificJavaTopics(specificTopics.split(','));
-          setData(Array.isArray(response.data) ? response.data : []); // 确保 data 是数组
+          const filteredData = Array.isArray(response.data) ? response.data.slice(1) : []; // 过滤掉第一条数据
+          setData(filteredData);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -36,7 +38,7 @@ const JavaTopics = () => {
 
   // ECharts 图表配置
   const options = {
-    title: { text: mode === 'top' ? `Top ${num} Java Topics` : `Specific Java Topics` },
+    title: { text: mode === 'top' ? `Top ${num - 1} Java Topics (Filtered)` : `Specific Java Topics (Filtered)` },
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' }, // 鼠标悬停时高亮
@@ -126,12 +128,12 @@ const JavaTopics = () => {
               borderRadius: '5px',
             }}
           >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={15}>15</option>
-            <option value={20}>20</option>
-            <option value={30}>30</option>
-            <option value={50}>50</option>
+            <option value={6}>5</option>
+            <option value={11}>10</option>
+            <option value={16}>15</option>
+            <option value={21}>20</option>
+            <option value={31}>30</option>
+            <option value={51}>50</option>
           </select>
         </div>
       ) : (

@@ -13,6 +13,7 @@ const AnswerQuality = () => {
   const [acceptedAnswerRatio, setAcceptedAnswerRatio] = useState(null); // 被采纳的回答比例
   const [highQualityByReputationRatio, setHighQualityByReputationRatio] = useState(null); // 高质量回答的高声誉用户比例
   const [voteThreshold, setVoteThreshold] = useState(10); // 投票阈值
+  const [reputationThreshold, setReputationThreshold] = useState(100); // 声誉阈值
 
   // 加载数据
   useEffect(() => {
@@ -24,10 +25,10 @@ const AnswerQuality = () => {
     // 加载三个数值数据
     fetchFirstAnswerAcceptedRatio().then((response) => setFirstAnswerAcceptedRatio(response.data));
     fetchAcceptedAnswerRatio().then((response) => setAcceptedAnswerRatio(response.data));
-    fetchHighQualityAnswerByHighReputationUserRatio(voteThreshold, 100).then((response) =>
+    fetchHighQualityAnswerByHighReputationUserRatio(voteThreshold, reputationThreshold).then((response) =>
       setHighQualityByReputationRatio(response.data)
     );
-  }, [voteThreshold]);
+  }, [voteThreshold, reputationThreshold]);
 
   // 配置长度分布的图表选项
   const lengthDistributionOptions = {
@@ -82,7 +83,7 @@ const AnswerQuality = () => {
     <div>
       <h2>Answer Quality Analysis</h2>
 
-      {/* 输入投票阈值 */}
+      {/* 输入投票阈值和声誉阈值 */}
       <div style={{ marginBottom: '20px' }}>
         <label htmlFor="vote-threshold">Vote Threshold:</label>
         <input
@@ -90,6 +91,14 @@ const AnswerQuality = () => {
           type="number"
           value={voteThreshold}
           onChange={(e) => setVoteThreshold(Number(e.target.value))}
+          style={{ marginLeft: '10px', width: '80px' }}
+        />
+        <label htmlFor="reputation-threshold" style={{ marginLeft: '20px' }}>Reputation Threshold:</label>
+        <input
+          id="reputation-threshold"
+          type="number"
+          value={reputationThreshold}
+          onChange={(e) => setReputationThreshold(Number(e.target.value))}
           style={{ marginLeft: '10px', width: '80px' }}
         />
       </div>

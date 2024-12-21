@@ -4,17 +4,30 @@ import { fetchTopUserEngagement } from '../api'; // 确保此 API 方法已经�
 
 const UserEngagement = () => {
   const [data, setData] = useState([]);
-  const [n, setN] = useState(5); // 默认展示前 5 个话题
+  const [n, setN] = useState(6); // 默认展示前 5 个条目
   const [reputationLimit, setReputationLimit] = useState(100); // 声誉限制（可调整）
 
   useEffect(() => {
     // 根据用户选择的 N 和声誉限制，调用 API 获取数据
-    fetchTopUserEngagement(reputationLimit, n).then((response) => setData(response.data));
+    const fetchData = async () => {
+      try {
+        const response = await fetchTopUserEngagement(reputationLimit, n);
+        const filteredData = Array.isArray(response.data)
+          ? response.data.filter((_, index) => index > 0).slice(0, n) // 去掉第一条，并限制条数为 n
+          : [];
+        setData(filteredData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setData([]);
+      }
+    };
+
+    fetchData();
   }, [n, reputationLimit]);
 
   // 配置 ECharts 图表选项
   const options = {
-    title: { text: `Top ${n} Topics by User Engagement` },
+    title: { text: `Top ${n - 1} Topics by User Engagement` },
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' }, // 鼠标悬停时显示高亮
@@ -62,7 +75,7 @@ const UserEngagement = () => {
     <div style={{ padding: '20px' }}>
       <h2>User Engagement Analysis</h2>
       
-      {/* 下拉框：选择显示的 N 个话题 */}
+      {/* 下拉框：选择显示的 N 个条目 */}
       <label htmlFor="n-select">Select N:</label>
       <select
         id="n-select"
@@ -70,12 +83,12 @@ const UserEngagement = () => {
         onChange={(e) => setN(Number(e.target.value))}
         style={{ marginLeft: '10px', padding: '5px', fontSize: '14px' }}
       >
-        <option value={5}>5</option>
-        <option value={10}>10</option>
-        <option value={15}>15</option>
-        <option value={20}>20</option>
-        <option value={30}>30</option>
-        <option value={50}>50</option>
+        <option value={6}>5</option>
+        <option value={11}>10</option>
+        <option value={16}>15</option>
+        <option value={21}>20</option>
+        <option value={31}>30</option>
+        <option value={51}>50</option>
       </select>
       
       {/* 输入框：设置声誉限制 */}
